@@ -1,1 +1,1 @@
-This is a text file that belongs to the initial commit.
+This is a text file that belongs to the initial commit. And it now has a friend.
