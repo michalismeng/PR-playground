@@ -97,5 +97,6 @@ jobs:
           echo "Environment: ${{ inputs.environment }}"
           echo "Ref: ${{ inputs.ref }}"
           echo "gh ref: ${{ github.ref }}"
+          echo "workflow_run head ref: ${{ github.event.workflow_run.head_branch }}"
           echo "Commit SHA: ${{ needs.resolve-ref.outputs.commit-sha }}"
 
