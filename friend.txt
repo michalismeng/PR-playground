@@ -1,1 +1,2 @@
 This is the friend of test.txt.
+Dummy change
