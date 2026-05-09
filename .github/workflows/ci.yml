@@ -14,3 +14,7 @@ jobs:
     steps:
       - shell: bash
         run: echo "Running CI checks..."
+      - name: Print commit info
+        run: |
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
