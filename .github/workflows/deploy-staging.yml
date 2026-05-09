@@ -1,0 +1,30 @@
+name: Deploy to DigitalOcean Staging (Blue/Green)
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [dev]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: The ref to check out and deploy (commit sha, tag, branch)
+        required: false
+        default: dev
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+jobs:
+  deploy:
+    name: Deploy to Staging
+    # if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/_deploy-do.yml
+    with:
+      environment: staging
+      ref: ${{ github.event.workflow_run.head_sha || inputs.ref || 'dev' }}
+    secrets: inherit
