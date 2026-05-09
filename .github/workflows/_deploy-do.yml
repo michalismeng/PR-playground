@@ -106,3 +106,7 @@ jobs:
           echo "Dumping all GITHUB env vars for debugging:"
           printenv | grep ^GITHUB_ || true
 
+      - name: Debug print all github.event variables
+        shell: bash
+        run: echo '${{ toJSON(github) }}'
+
