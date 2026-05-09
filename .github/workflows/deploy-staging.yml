@@ -25,7 +25,7 @@ jobs:
     steps:
     - name: Debug print all github.event variables
       shell: bash
-      run: echo '${{ toJSON(github.event.workflow) }}'
+      run: echo '${{ toJSON(github.event.workflow_run) }}'
 
   deploy:
     name: Deploy to Staging
