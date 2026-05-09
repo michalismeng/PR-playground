@@ -91,6 +91,13 @@ jobs:
           persist-credentials: false
           ref: ${{ needs.resolve-ref.outputs.commit-sha }}
 
+      - name: Simulate deployment
+        shell: bash
+        run: |
+          echo "Deploying commit ${{ needs.resolve-ref.outputs.commit-sha }} to environment '${{ inputs.environment }}'..."
+          sleep 20
+          echo "Deployment complete!"
+
       - name: Print inputs and commit info
         shell: bash
         run: |
