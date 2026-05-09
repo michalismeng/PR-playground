@@ -20,6 +20,13 @@ permissions:
   packages: read
 
 jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Debug print all github.event variables
+      shell: bash
+      run: echo '${{ toJSON(github.event.workflow) }}'
+
   deploy:
     name: Deploy to Staging
     # if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'

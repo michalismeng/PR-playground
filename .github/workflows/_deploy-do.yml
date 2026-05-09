@@ -100,13 +100,29 @@ jobs:
           echo "workflow_run head ref: ${{ github.event.workflow_run.head_branch }}"
           echo "Commit SHA: ${{ needs.resolve-ref.outputs.commit-sha }}"
 
-      - name: Debug print all github related env vars
+
+        # Checkout to workflow_run.head_branch (this is the tag!)
+      - name: Post deployment summary
+        if: always()
         shell: bash
+        env:
+          ACTOR: ${{ github.actor }}
+          REF: ${{ inputs.ref }}
         run: |
-          echo "Dumping all GITHUB env vars for debugging:"
-          printenv | grep ^GITHUB_ || true
+          STATUS="${{ job.status }}"
+          case "$STATUS" in
+            success) BADGE="✅ Success" ;;
+            failure) BADGE="❌ Failure" ;;
+            cancelled) BADGE="🚫 Cancelled" ;;
+            *) BADGE="$STATUS" ;;
+          esac
+          cat >> "$GITHUB_STEP_SUMMARY" <<EOF
+          ## Deployment: $BADGE
 
-      - name: Debug print all github.event variables
-        shell: bash
-        run: echo '${{ toJSON(github) }}'
-
+          | Field | Value |
+          |---|---|
+          | Environment | ${{ inputs.environment }} |
+          | Ref | \`$REF\` |
+          | Commit | \`${{ needs.resolve-ref.outputs.commit-sha }}\` |
+          | Triggered by | $ACTOR |
+          EOF

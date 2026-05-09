@@ -23,6 +23,13 @@ permissions:
   packages: read
 
 jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Debug print all github.event variables
+      shell: bash
+      run: echo '${{ toJSON(github.event.workflow) }}'
+
   deploy:
     name: Deploy to Production
     # TODO: Remove the startWith for now
