@@ -96,5 +96,6 @@ jobs:
         run: |
           echo "Environment: ${{ inputs.environment }}"
           echo "Ref: ${{ inputs.ref }}"
+          echo "gh ref: ${{ github.ref }}"
           echo "Commit SHA: ${{ needs.resolve-ref.outputs.commit-sha }}"
 
