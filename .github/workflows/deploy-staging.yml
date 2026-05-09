@@ -15,7 +15,7 @@ on:
         type: string
 
 concurrency:
-  group: staging-deployments
+  group: deployments-staging
   cancel-in-progress: false
 
 permissions:

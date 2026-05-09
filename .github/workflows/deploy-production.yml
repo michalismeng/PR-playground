@@ -16,6 +16,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: deployments-production
+  cancel-in-progress: false
+
 permissions:
   contents: read
   actions: read

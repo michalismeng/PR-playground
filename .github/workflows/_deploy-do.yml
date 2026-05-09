@@ -1,4 +1,4 @@
-name: Deploy to DigitalOcean (Blue/Green) - Reusable
+name: "[Reusable] Deploy to DigitalOcean (Blue/Green)"
 
 on:
   workflow_call:
