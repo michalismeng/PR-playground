@@ -100,3 +100,9 @@ jobs:
           echo "workflow_run head ref: ${{ github.event.workflow_run.head_branch }}"
           echo "Commit SHA: ${{ needs.resolve-ref.outputs.commit-sha }}"
 
+      - name: Debug print all github related env vars
+        shell: bash
+        run: |
+          echo "Dumping all GITHUB env vars for debugging:"
+          printenv | grep ^GITHUB_ || true
+
