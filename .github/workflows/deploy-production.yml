@@ -1,0 +1,37 @@
+name: Deploy to DigitalOcean Production (Blue/Green)
+
+# Automates the Ansible blue/green deployment described in deploy/README.md.
+
+on:
+  # zizmor: ignore[dangerous-triggers]
+  workflow_run:
+    workflows: ["CI"]
+    branches: ["v*", "main"]
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The Git tag to deploy
+        required: true
+        type: string
+
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  deploy:
+    name: Deploy to Production
+    uses: ./.github/workflows/_deploy-do.yml # zizmor: ignore[secrets-inherit]
+    with:
+      environment: production
+      ref: ${{ github.event.workflow_run.head_branch || inputs.tag }}
+    secrets: inherit

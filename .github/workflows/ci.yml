@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+    tags: ['v*']
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  test:
+    name: "Running CI"
+    runs-on: ubuntu-latest
+    steps:
+      - shell: bash
+        run: echo "Running CI checks..."
+      - name: Print commit info
+        run: |
+          echo "Commit SHA: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
