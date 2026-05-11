@@ -6,37 +6,31 @@ on:
   # zizmor: ignore[dangerous-triggers]
   workflow_run:
     workflows: ["CI"]
-    branches: ["v*"]
+    branches: ["v*", "main"]
     types:
       - completed
   workflow_dispatch:
     inputs:
-      ref:
-        description: The ref to check out and deploy (commit sha, tag, branch)
+      tag:
+        description: The Git tag to deploy
         required: true
         type: string
 
-concurrency:
-  group: deployments-production
-  cancel-in-progress: false
 
 permissions:
   contents: read
   actions: read
   packages: read
 
-jobs:
-  debug:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Debug print all github.event variables
-      shell: bash
-      run: echo '${{ toJSON(github.event.workflow_run) }}'
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
 
+jobs:
   deploy:
     name: Deploy to Production
-    uses: ./.github/workflows/_deploy-do.yml
+    uses: ./.github/workflows/_deploy-do.yml # zizmor: ignore[secrets-inherit]
     with:
       environment: production
-      ref: ${{ github.event.workflow_run.head_branch || inputs.ref }}
+      ref: ${{ github.event.workflow_run.head_branch || inputs.tag }}
     secrets: inherit

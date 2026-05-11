@@ -1,6 +1,9 @@
 name: Deploy to DigitalOcean Staging (Blue/Green)
 
+# Automates the Ansible blue/green deployment described in deploy/README.md.
+
 on:
+  # zizmor: ignore[dangerous-triggers]
   workflow_run:
     workflows: ["CI"]
     branches: [dev]
@@ -14,28 +17,22 @@ on:
         default: dev
         type: string
 
-concurrency:
-  group: deployments-staging
-  cancel-in-progress: false
-
 permissions:
   contents: read
   actions: read
   packages: read
 
-jobs:
-  debug:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Debug print all github.event variables
-      shell: bash
-      run: echo '${{ toJSON(github.event.workflow_run) }}'
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
 
+jobs:
   deploy:
     name: Deploy to Staging
-    # if: github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/_deploy-do.yml
+    uses: ./.github/workflows/_deploy-do.yml # zizmor: ignore[secrets-inherit]
     with:
       environment: staging
+      # Prefer the head sha instead of the branch to avoid the slim chance
+      # of the branch being updated before the common deploy workflow checks out the code.
       ref: ${{ github.event.workflow_run.head_sha || inputs.ref || 'dev' }}
     secrets: inherit
