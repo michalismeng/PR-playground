@@ -106,7 +106,6 @@ jobs:
           echo "gh ref: ${{ github.ref }}"
           echo "workflow_run head ref: ${{ github.event.workflow_run.head_branch }}"
           echo "Commit SHA: ${{ needs.resolve-ref.outputs.commit-sha }}"
-          exit 1
 
 
         # Checkout to workflow_run.head_branch (this is the tag!)
