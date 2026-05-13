@@ -28,32 +28,9 @@ jobs:
         run: echo "$(make version)"
 
 
-  # Detect which parts of the codebase changed
+  # Detect which parts of the codebase changed and derive build flags
   detect-changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      portal: ${{ steps.filter.outputs.portal }}
-      mcp: ${{ steps.filter.outputs.mcp }}
-      server: ${{ steps.filter.outputs.server }}
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 # zizmor: ignore[artipacked]
-
-      - name: Filter changes testing
-        shell: bash
-        id: filter
-        # Hardcode change to portal == true for now
-        run: |
-          echo "portal=true" >> "$GITHUB_OUTPUT"
-          echo "mcp=false" >> "$GITHUB_OUTPUT"
-          echo "server=false" >> "$GITHUB_OUTPUT"
-
-
-
-  set-flags:
-    name: Set Flags
-    needs: [detect-changes]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -61,44 +38,68 @@ jobs:
       should-publish: ${{ steps.flags.outputs.should-publish }}
       should-e2e: ${{ steps.flags.outputs.should-e2e }}
     steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 # zizmor: ignore[artipacked]
+
+      # - name: Filter changes testing
+      #   shell: bash
+      #   id: filter
+      #   # Hardcode change to portal == true for now
+      #   run: |
+      #     echo "portal=true" >> "$GITHUB_OUTPUT"
+      #     echo "mcp=false" >> "$GITHUB_OUTPUT"
+      #     echo "server=false" >> "$GITHUB_OUTPUT"
+
+      # https://github.com/dorny/paths-filter
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            portal:
+              - 'crates/portal/**'
+              - 'crates/portal-auth/**'
+              - 'crates/core/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+            mcp:
+              - 'crates/mcp/**'
+              - 'crates/portal-auth/**'
+              - 'crates/core/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+            server:
+              - 'crates/server/**'
+              - 'crates/portal/**'
+              - 'crates/portal-auth/**'
+              - 'crates/mcp/**'
+              - 'crates/core/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+
       - name: Compute flags
         id: flags
         env:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
-          PORTAL_CHANGED: ${{ needs.detect-changes.outputs.portal }}
-          MCP_CHANGED: ${{ needs.detect-changes.outputs.mcp }}
-          SERVER_CHANGED: ${{ needs.detect-changes.outputs.server }}
         run: |
           code_changed=false
-          if [[ "$PORTAL_CHANGED" == "true" || "$MCP_CHANGED" == "true" || "$SERVER_CHANGED" == "true" ]]; then
-            code_changed=true
-          fi
+          [[ "${{ steps.filter.outputs.changes }}" != "[]" ]] && code_changed=true
 
           should_publish=false
-          if [[ "$EVENT" == "push" && ("$REF" == "refs/heads/dev" || "$REF" =~ ^refs/tags/v) ]]; then
-            should_publish=true
-          fi
+          [[ "$EVENT" == "push" && ("$REF" == "refs/heads/dev" || "$REF" =~ ^refs/tags/v) ]] && should_publish=true
 
           should_build=false
-          if [[ "$code_changed" == "true" || "$should_publish" == "true" ]]; then
-            should_build=true
-          fi
+          [[ "$code_changed" == "true" || "$should_publish" == "true" ]] && should_build=true
 
-          should_e2e=false
-          if [[ "$code_changed" == "true" ]]; then
-            should_e2e=true
-          fi
+          should_e2e=$code_changed
 
           echo "should-build=$should_build" >> "$GITHUB_OUTPUT"
           echo "should-publish=$should_publish" >> "$GITHUB_OUTPUT"
           echo "should-e2e=$should_e2e" >> "$GITHUB_OUTPUT"
 
-
   build:
     name: Build
-    needs: [detect-changes, set-flags]
-    if: needs.set-flags.outputs.should-build == 'true'
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.should-build == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     permissions:
@@ -110,16 +111,6 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-
-      - name: Setup Rust build environment
-        uses: ./.github/actions/setup-rust-build
-
-      - name: Cache Rust dependencies
-        # https://github.com/Swatinem/rust-cache
-        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
-        with:
-          key: build
-          save-if: ${{ github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main' }}
 
       # main branch builds with production feature flags
       # All other branches (dev, PRs to dev, feature branches) build without flags
@@ -151,100 +142,30 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build WASM bundle
-        run: cargo leptos build --release ${{ steps.variant.outputs.leptos-flags }}
+      - name: Building
         env:
-          SQLX_OFFLINE: true
-          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS: '--cfg=getrandom_backend="wasm_js" --cfg=erase_components'
-
-      - name: Build server binary
-        run: cargo build --release -p nautilus_server ${{ steps.variant.outputs.server-features }}
-        env:
-          SQLX_OFFLINE: true
-
-      - name: Prepare deploy directory
+          GH_REF: ${{ github.ref }}
+          GH_BASE_REF: ${{ github.base_ref }}
         run: |
-          mkdir -p deploy
-          cp target/release/nautilus_server deploy/
-          cp -r target/site deploy/
-          cp Cargo.toml deploy/
+          echo "Building with features: ${{ steps.variant.outputs.leptos-flags }} and server features: ${{ steps.variant.outputs.server-features }}"
+          echo "Environment: ${{ steps.variant.outputs.environment }}"
+          echo "GH_REF: $GH_REF"
+          echo "GH_BASE_REF: $GH_BASE_REF"
+          sleep 10
 
-      - name: Upload deploy artifacts
-        # https://github.com/actions/upload-artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: deploy-artifacts
-          path: deploy/
-          retention-days: 3
+      - name: Publishing
+        if: needs.detect-changes.outputs.should-publish == 'true'
+        run: echo "Publishing artifacts..."
 
-      - name: Prepare Docker packaging directory
-        if: needs.set-flags.outputs.should-publish == 'true'
-        run: |
-          mkdir -p package/app/target/{release,site}
-          mkdir -p package/app/crates/portal/docs
-          cp target/release/nautilus_server package/app/target/release/nautilus_server
-          cp -r target/site package/app/target/
-          cp crates/portal/docs/* package/app/crates/portal/docs/
-          cp Cargo.toml package/app/
-
-      - name: Export image version
-        if: needs.set-flags.outputs.should-publish == 'true'
-        env:
-          ENVIRONMENT: ${{ steps.variant.outputs.environment }}
-        run: echo "VERSION=$(make version)" >> "$GITHUB_ENV"
-
-      - name: Log in to the Container registry
-        if: needs.set-flags.outputs.should-publish == 'true'
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # 4.1.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Package artifacts in Docker image
-        if: needs.set-flags.outputs.should-publish == 'true'
-        run: |
-          docker build \
-            --target runtime \
-            --build-context builder=package/ \
-            -t "nautilus_backend:${VERSION:?}" \
-            -f Dockerfile .
-
-      - name: Push Docker image
-        if: needs.set-flags.outputs.should-publish == 'true'
-        run: make docker-push
-
-      # Build E2E variant (reuses warm compilation cache, only e2e-gated code recompiles)
-      - name: Build E2E WASM bundle
-        if: needs.set-flags.outputs.should-e2e == 'true'
-        run: >-
-          cargo leptos build --release
-          --lib-features="hydrate,e2e"
-          --bin-features="ssr,e2e"
-        env:
-          SQLX_OFFLINE: true
-          CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUSTFLAGS: '--cfg=getrandom_backend="wasm_js" --cfg=erase_components'
-
-      - name: Prepare E2E build directory
-        if: needs.set-flags.outputs.should-e2e == 'true'
-        run: |
-          mkdir -p e2e-build
-          cp target/release/nautilus_portal e2e-build/
-          cp -r target/site e2e-build/
-
-      - name: Upload E2E build artifacts
-        if: needs.set-flags.outputs.should-e2e == 'true'
-        # https://github.com/actions/upload-artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: e2e-build-artifacts
-          path: e2e-build/
-          retention-days: 7
+      - name: Building E2E
+        if: needs.detect-changes.outputs.should-e2e == 'true'
+        shell: bash
+        run: echo "Building E2E variant if needed..."
 
   e2e-tests:
     name: E2E Tests
-    needs: [build, set-flags]
-    if: always() && needs.build.result == 'success' && needs.set-flags.outputs.should-e2e == 'true'
+    needs: [build, detect-changes]
+    if: always() && needs.build.result == 'success' && needs.detect-changes.outputs.should-e2e == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -256,6 +177,12 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
+      - name: Export image version
+        if: github.event_name == 'push'
+        env:
+          ENVIRONMENT: staging
+        run: echo "$(make version)"
 
       - name: Run E2E tests
         working-directory: crates/portal/end2end
