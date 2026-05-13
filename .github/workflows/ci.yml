@@ -166,6 +166,5 @@ jobs:
         run: echo "$(make version)"
 
       - name: Run E2E tests
-        working-directory: crates/portal/end2end
         shell: bash
         run: echo "Running E2E tests... && sleep 50"
