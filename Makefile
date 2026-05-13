@@ -1,8 +1,9 @@
 ENVIRONMENT ?= production
 version:  ## Print the version for the current commit
-	@sha=$$(git describe --tags --always --dirty); \
+	@tag=$$(git tag --points-at HEAD | head -n1); \
+	if [ -z "$${tag}" ]; then tag=$$(git rev-parse --short HEAD); fi; \
 	if [ "$(ENVIRONMENT)" = "staging" ]; then \
-		echo "$${sha}-staging"; \
+		echo "$${tag}-staging"; \
 	else \
-		echo "$${sha}"; \
+		echo "$${tag}"; \
 	fi
