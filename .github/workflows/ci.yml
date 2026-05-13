@@ -61,11 +61,10 @@ jobs:
           echo "should-e2e=$should_e2e" >> "$GITHUB_OUTPUT"
           echo "environment=$environment" >> "$GITHUB_OUTPUT"
 
-          echo "::notice::code_changed=$code_changed"
-          echo "::notice::should_build=$should_build"
-          echo "::notice::should_publish=$should_publish"
-          echo "::notice::should_e2e=$should_e2e"
-          echo "::notice::environment=$environment"
+          echo "should_build=$should_build"
+          echo "should_publish=$should_publish"
+          echo "should_e2e=$should_e2e"
+          echo "environment=$environment"
 
   build:
     name: Build
