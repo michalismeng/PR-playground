@@ -12,30 +12,6 @@ permissions:
   pull-requests: read
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      # https://github.com/actions/checkout
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Export image version
-        env:
-          GH_REF: ${{ github.ref }}
-          GH_BASE_REF: ${{ github.base_ref }}
-        run: |
-          if [[ "$GH_REF" == "refs/heads/main" || \
-                "$GH_BASE_REF" == "main" || \
-                "$GH_REF" =~ ^refs/tags/v ]]; then
-            export ENVIRONMENT=production
-          else
-            export ENVIRONMENT=staging
-          fi
-          echo "$(make version)"
-
-
   # Detect which parts of the codebase changed and derive build flags
   detect-changes:
     name: Detect Changes
@@ -58,6 +34,7 @@ jobs:
           echo "mcp=false" >> "$GITHUB_OUTPUT"
           echo "server=false" >> "$GITHUB_OUTPUT"
 
+      # Always publish images outside the PR context, so a deployment can be triggered.
       - name: Compute flags
         id: flags
         env:
