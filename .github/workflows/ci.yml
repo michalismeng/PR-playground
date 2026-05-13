@@ -28,9 +28,9 @@ jobs:
       - name: Filter changes testing
         shell: bash
         id: filter
-        # Hardcode change to portal == true for now
+        # Hardcode change for testing
         run: |
-          echo "outputs='[mcp]'" >> "$GITHUB_OUTPUT"
+          echo "changes='[mcp]'" >> "$GITHUB_OUTPUT"
 
       # Always publish images outside the PR context, so a deployment can be triggered.
       - name: Compute flags
