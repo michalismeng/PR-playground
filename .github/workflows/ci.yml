@@ -30,7 +30,7 @@ jobs:
         id: filter
         # Hardcode change to portal == true for now
         run: |
-          echo "outputs=[mcp]" >> "$GITHUB_OUTPUT"
+          echo "outputs='[mcp]'" >> "$GITHUB_OUTPUT"
 
       # Always publish images outside the PR context, so a deployment can be triggered.
       - name: Compute flags
