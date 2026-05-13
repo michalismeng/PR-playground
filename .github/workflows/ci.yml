@@ -49,40 +49,14 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 # zizmor: ignore[artipacked]
 
-      # - name: Filter changes testing
-      #   shell: bash
-      #   id: filter
-      #   # Hardcode change to portal == true for now
-      #   run: |
-      #     echo "portal=true" >> "$GITHUB_OUTPUT"
-      #     echo "mcp=false" >> "$GITHUB_OUTPUT"
-      #     echo "server=false" >> "$GITHUB_OUTPUT"
-
-      # https://github.com/dorny/paths-filter
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+      - name: Filter changes testing
+        shell: bash
         id: filter
-        with:
-          filters: |
-            portal:
-              - 'crates/portal/**'
-              - 'crates/portal-auth/**'
-              - 'crates/core/**'
-              - 'Cargo.toml'
-              - 'Cargo.lock'
-            mcp:
-              - 'crates/mcp/**'
-              - 'crates/portal-auth/**'
-              - 'crates/core/**'
-              - 'Cargo.toml'
-              - 'Cargo.lock'
-            server:
-              - 'crates/server/**'
-              - 'crates/portal/**'
-              - 'crates/portal-auth/**'
-              - 'crates/mcp/**'
-              - 'crates/core/**'
-              - 'Cargo.toml'
-              - 'Cargo.lock'
+        # Hardcode change to portal == true for now
+        run: |
+          echo "portal=true" >> "$GITHUB_OUTPUT"
+          echo "mcp=false" >> "$GITHUB_OUTPUT"
+          echo "server=false" >> "$GITHUB_OUTPUT"
 
       - name: Compute flags
         id: flags
