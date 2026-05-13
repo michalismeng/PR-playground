@@ -45,6 +45,7 @@ jobs:
       should-build: ${{ steps.flags.outputs.should-build }}
       should-publish: ${{ steps.flags.outputs.should-publish }}
       should-e2e: ${{ steps.flags.outputs.should-e2e }}
+      environment: ${{ steps.flags.outputs.environment }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2 # zizmor: ignore[artipacked]
 
@@ -88,6 +89,7 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           code_changed=false
           [[ "${{ steps.filter.outputs.changes }}" != "[]" ]] && code_changed=true
@@ -100,9 +102,13 @@ jobs:
 
           should_e2e=$code_changed
 
+          environment=staging
+          [[ "$REF" == "refs/heads/main" || "$BASE_REF" == "main" || "$REF" =~ ^refs/tags/v ]] && environment=production
+
           echo "should-build=$should_build" >> "$GITHUB_OUTPUT"
           echo "should-publish=$should_publish" >> "$GITHUB_OUTPUT"
           echo "should-e2e=$should_e2e" >> "$GITHUB_OUTPUT"
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build
@@ -124,18 +130,12 @@ jobs:
       # All other branches (dev, PRs to dev, feature branches) build without flags
       - name: Determine build variant
         id: variant
-        env:
-          GH_REF: ${{ github.ref }}
-          GH_BASE_REF: ${{ github.base_ref }}
         run: |
-          if [[ "$GH_REF" == "refs/heads/main" || \
-                "$GH_BASE_REF" == "main" || \
-                "$GH_REF" =~ ^refs/tags/v ]]; then
+          if [[ "${{ needs.detect-changes.outputs.environment }}" == "production" ]]; then
             lib="hydrate"
             bin="ssr,invite-only-signup"
             srv="invite-only-signup"
             {
-              echo "environment=production"
               echo "leptos-flags=--lib-features=$lib --bin-features=$bin"
               echo "server-features=--features=$srv"
             } >> "$GITHUB_OUTPUT"
@@ -144,7 +144,6 @@ jobs:
             bin="ssr,invite-only-signup"
             srv="invite-only-signup"
             {
-              echo "environment=staging"
               echo "leptos-flags=--lib-features=$lib --bin-features=$bin"
               echo "server-features=--features=$srv"
             } >> "$GITHUB_OUTPUT"
@@ -156,7 +155,7 @@ jobs:
           GH_BASE_REF: ${{ github.base_ref }}
         run: |
           echo "Building with features: ${{ steps.variant.outputs.leptos-flags }} and server features: ${{ steps.variant.outputs.server-features }}"
-          echo "Environment: ${{ steps.variant.outputs.environment }}"
+          echo "Environment: ${{ needs.detect-changes.outputs.environment }}"
           echo "GH_REF: $GH_REF"
           echo "GH_BASE_REF: $GH_BASE_REF"
           sleep 10
@@ -189,7 +188,7 @@ jobs:
       - name: Export image version
         if: github.event_name == 'push'
         env:
-          ENVIRONMENT: staging
+          ENVIRONMENT: ${{ needs.detect-changes.outputs.environment }}
         run: echo "$(make version)"
 
       - name: Run E2E tests
