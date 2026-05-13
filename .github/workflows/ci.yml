@@ -20,11 +20,20 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+
       - name: Export image version
-        if: github.event_name == 'push'
         env:
-          ENVIRONMENT: staging
-        run: echo "$(make version)"
+          GH_REF: ${{ github.ref }}
+          GH_BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [[ "$GH_REF" == "refs/heads/main" || \
+                "$GH_BASE_REF" == "main" || \
+                "$GH_REF" =~ ^refs/tags/v ]]; then
+            export ENVIRONMENT=production
+          else
+            export ENVIRONMENT=staging
+          fi
+          echo "$(make version)"
 
 
   # Detect which parts of the codebase changed and derive build flags
