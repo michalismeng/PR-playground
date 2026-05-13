@@ -43,7 +43,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           code_changed=false
-          [[ "${{ steps.filter.outputs.changes }}" != "[]" ]] && code_changed=true
+          [[ "${{ steps.filter.outputs.changes }}" != "" ]] && code_changed=true
 
           should_publish=false
           [[ "$EVENT" == "push" && ("$REF" == "refs/heads/dev" || "$REF" =~ ^refs/tags/v) ]] && should_publish=true
