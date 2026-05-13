@@ -30,7 +30,7 @@ jobs:
         id: filter
         # Hardcode change for testing
         run: |
-          echo "changes='[mcp]'" >> "$GITHUB_OUTPUT"
+          echo "changes=''" >> "$GITHUB_OUTPUT"
 
       # Always publish images outside the PR context, so a deployment can be triggered.
       - name: Compute flags
